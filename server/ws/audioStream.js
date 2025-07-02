@@ -24,6 +24,7 @@ function setupAudioStream(server) {
       encoding: 'mulaw',
       sample_rate: 8000,
     });
+    console.log('[Deepgram] Live transcription connection opened');
 
     connection.on(LiveTranscriptionEvents.Transcript, (data) => {
       try {
@@ -63,7 +64,6 @@ function setupAudioStream(server) {
     ws.on('message', (message) => {
       try {
         const data = JSON.parse(message);
-        console.log('[WS message event]', data);
         if (data.event === 'connected' || data.event === 'start') {
           callSid = data.start?.callSid;
           console.log('[WS] Set callSid:', callSid);
