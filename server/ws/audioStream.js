@@ -4,7 +4,7 @@ import twilio from 'twilio';
 
 const DELIVERY_KEYWORDS = [
   'amazon', 'fedex', 'ups', 'usps', 'dhl', 'delivery', 'package',
-  'doordash', 'door dash', 'ubereats', 'uber eats'
+  'doordash', 'door dash', 'ubereats', 'uber eats', 'uber'
 ];
 
 function setupAudioStream(server) {
@@ -31,11 +31,13 @@ function setupAudioStream(server) {
         if (transcript) {
           console.log('Transcript:', transcript);
 
-          if (DELIVERY_KEYWORDS.some(word => transcript.toLowerCase().includes(word))) {
+          const matched = DELIVERY_KEYWORDS.find(word => transcript.toLowerCase().includes(word));
+          if (matched) {
+            const trigger = matched.toUpperCase();
             console.log('Delivery detected! Buzzing in...');
             if (callSid) {
               twilioClient.calls(callSid).update({
-                url: `https://${req.headers.host}/twilio/success`,
+                url: `https://${req.headers.host}/twilio/success${trigger ? `?trigger=${encodeURIComponent(trigger)}` : ''}`,
                 method: 'POST'
               }).then(() => {
                 console.log('Sent Thank you message.');
