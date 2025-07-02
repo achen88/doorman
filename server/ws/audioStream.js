@@ -14,6 +14,7 @@ function setupAudioStream(server) {
   wss.on('connection', (ws, req) => {
     console.log("Twilio WS connected");
     let callSid = null;
+    let isDeepgramReady = false;
 
     // Create Deepgram live transcription connection
     const deepgram = createClient(process.env.DEEPGRAM_API_KEY);
@@ -25,6 +26,11 @@ function setupAudioStream(server) {
       sample_rate: 8000,
     });
     console.log('[Deepgram] Live transcription connection opened');
+
+    connection.on(LiveTranscriptionEvents.Open, () => {
+      console.log('[Deepgram] Connection READY');
+      isDeepgramReady = true;
+    });
 
     connection.on(LiveTranscriptionEvents.Transcript, (data) => {
       try {
@@ -72,8 +78,12 @@ function setupAudioStream(server) {
           if (!callSid) {
             console.warn('[WS] Received media event before callSid was set!');
           }
-          const audio = Buffer.from(data.media.payload, 'base64');
-          connection.send(audio);
+          if (isDeepgramReady) {
+            const audio = Buffer.from(data.media.payload, 'base64');
+            connection.send(audio);
+          } else {
+            console.warn('[Deepgram] Not ready yet, dropping audio packet');
+          }
         }
       } catch (err) {
         console.error('[Error handling Twilio message]:', err);
