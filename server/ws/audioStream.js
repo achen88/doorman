@@ -61,7 +61,7 @@ function setupAudioStream(server) {
       try {
         const data = JSON.parse(message);
         if (data.event === 'connected' || data.event === 'start') {
-          callSid = data.start.callSid;
+          callSid = data.start?.callSid;
         }
         if (data.event === 'media') {
           if (!callSid) {
