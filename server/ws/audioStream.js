@@ -12,7 +12,7 @@ function setupAudioStream(server) {
   const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
 
   wss.on('connection', (ws, req) => {
-    console.log("Twilio WS connected");
+    console.log("Twilio WS connected")
     let callSid = null;
 
     // Create Deepgram live transcription connection
@@ -28,15 +28,14 @@ function setupAudioStream(server) {
     connection.on(LiveTranscriptionEvents.Transcript, (data) => {
       try {
         const transcript = data.channel?.alternatives[0]?.transcript;
-        console.log('[Deepgram Transcript Event]', JSON.stringify(data));
         if (transcript) {
-          console.log('[Transcript]', transcript);
+          console.log('Transcript:', transcript);
+
           const matched = DELIVERY_KEYWORDS.find(word => transcript.toLowerCase().includes(word));
           if (matched) {
             const trigger = matched.toUpperCase();
-            console.log('[Delivery Detected] Trigger:', trigger, 'Transcript:', transcript);
+            console.log('Delivery detected! Buzzing in...');
             if (callSid) {
-              console.log('[Twilio CallSid]', callSid, 'Updating call with trigger:', trigger);
               twilioClient.calls(callSid).update({
                 url: `https://${req.headers.host}/twilio/success${trigger ? `?trigger=${encodeURIComponent(trigger)}` : ''}`,
                 method: 'POST'
@@ -51,42 +50,40 @@ function setupAudioStream(server) {
           }
         }
       } catch (err) {
-        console.error('[Transcript handling error]:', err);
+        console.error('Transcript handling error:', err);
       }
     });
 
     connection.on(LiveTranscriptionEvents.Error, (err) => {
-      console.error('[Deepgram error]:', err);
+      console.error('Deepgram error:', err);
       ws.close();
     });
 
     ws.on('message', (message) => {
       try {
         const data = JSON.parse(message);
-        console.log('[WS message event]', data);
         if (data.event === 'connected' || data.event === 'start') {
           callSid = data.start?.callSid;
-          console.log('[WS] Set callSid:', callSid);
         }
         if (data.event === 'media') {
           if (!callSid) {
-            console.warn('[WS] Received media event before callSid was set!');
+            console.warn('Received media event before callSid was set!');
           }
           const audio = Buffer.from(data.media.payload, 'base64');
           connection.send(audio);
         }
       } catch (err) {
-        console.error('[Error handling Twilio message]:', err);
+        console.error('Error handling Twilio message:', err);
       }
     });
 
     ws.on('close', () => {
       connection.finish();
-      console.log('[WS] Twilio media stream disconnected');
+      console.log('Twilio media stream disconnected');
     });
 
     ws.on('error', (err) => {
-      console.error('[WebSocket error]:', err);
+      console.error('WebSocket error:', err);
       connection.finish();
     });
   });
